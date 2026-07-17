@@ -64,6 +64,30 @@ SEGMENTOS_PRIORITARIOS = {
 # UFs com alta incidencia solar / tarifa elevada, priorizadas no ICP.
 UF_PRIORITARIAS = {"SP", "MG", "GO", "MT", "MS", "PR"}
 
+# Nome completo (normalizado, sem acento/minusculo) -> sigla. Fontes de dados variam
+# entre sigla ("SP") e nome completo do estado ("Sao Paulo") - normalizamos os dois.
+ESTADOS_NOME_PARA_UF = {
+    "acre": "AC", "alagoas": "AL", "amapa": "AP", "amazonas": "AM",
+    "bahia": "BA", "ceara": "CE", "distrito federal": "DF",
+    "espirito santo": "ES", "goias": "GO", "maranhao": "MA",
+    "mato grosso": "MT", "mato grosso do sul": "MS", "minas gerais": "MG",
+    "para": "PA", "paraiba": "PB", "parana": "PR", "pernambuco": "PE",
+    "piaui": "PI", "rio de janeiro": "RJ", "rio grande do norte": "RN",
+    "rio grande do sul": "RS", "rondonia": "RO", "roraima": "RR",
+    "santa catarina": "SC", "sao paulo": "SP", "sergipe": "SE",
+    "tocantins": "TO",
+}
+
+
+def _uf_normalizada(uf: Optional[str]) -> Optional[str]:
+    """Aceita sigla ('SP') ou nome completo ('Sao Paulo') e retorna a sigla."""
+    if not uf:
+        return None
+    texto = str(uf).strip()
+    if len(texto) == 2:
+        return texto.upper()
+    return ESTADOS_NOME_PARA_UF.get(_normalizar(texto))
+
 # Pesos somam 100. Segmento carrega o maior peso pois hoje e o sinal mais
 # rico disponivel de graca (nao ha leitura real de consumo em kWh nesta fase).
 PESOS = {
@@ -153,9 +177,10 @@ def score_tempo_empresa(data_inicio_atividade: Optional[Any]) -> float:
 
 def score_localizacao(uf: Optional[str]) -> float:
     """0-5: UFs com alta incidencia solar / tarifa elevada priorizadas no ICP."""
-    if not uf:
+    sigla = _uf_normalizada(uf)
+    if not sigla:
         return 0
-    return 5 if str(uf).strip().upper() in UF_PRIORITARIAS else 2
+    return 5 if sigla in UF_PRIORITARIAS else 2
 
 
 def score_estrutura_societaria(tipo: Optional[str]) -> float:
