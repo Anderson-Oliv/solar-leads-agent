@@ -1,0 +1,90 @@
+{
+  "coletado_em": "2026-07-17",
+  "fonte": "Meta Ads Library (facebook.com/ads/library) via MCP Meta_ADS_MCP + navegação manual",
+  "pais": "BR",
+  "filtro": "active_status=ACTIVE",
+  "concorrentes_pesquisados": [
+    "NeoSolar", "Portal Solar", "Solmais", "SGV Solar",
+    "Energia Total", "Aldo Solar", "Sou Energy", "Dalsun"
+  ],
+  "concorrentes_sem_anuncios_ativos_ou_historico": [
+    {"nome": "Portal Solar", "page_id": "214345438593429", "observacao": "194,5 mil seguidores no FB, 0 anúncios ativos ou inativos encontrados na Ad Library BR"},
+    {"nome": "Energia Total", "page_id": "491928197648122", "observacao": "0 anúncios encontrados"},
+    {"nome": "Sou Energy", "page_id": "404095476672136", "observacao": "18,5 mil seguidores no FB, 0 anúncios encontrados"},
+    {"nome": "Solmais", "page_id": null, "observacao": "Não foi possível identificar página de anunciante correspondente na Ad Library"}
+  ],
+  "concorrentes_com_anuncios_ativos": [
+    {
+      "nome": "Aldo Solar",
+      "page_id": "113005112093720",
+      "handle": "aldo.com.br / volt.aldo.com.br",
+      "total_anuncios_ativos": 24,
+      "publico_alvo": "B2B - integradores/instaladores solares",
+      "anuncio_mais_antigo_ativo": {
+        "id": "912518358475990",
+        "inicio_veiculacao": "2026-04-22",
+        "obs": "baixo volume de impressões"
+      },
+      "amostras_copy": [
+        "Todo integrador aprende isso em algum momento. Alguns pelo preço... outros pela experiência. #AldoSolar #GiganteSolar #IntegradorSolar #EnergiaSolar",
+        "Quer escalar o seu negócio de energia solar? Então você precisa das ferramentas certas. Ao se cadastrar na plataforma da Aldo Solar, você acessa condições exclusivas, suporte técnico de ponta e o maior portfólio de soluções do país.",
+        "A Aldo Solar agora tem atendimento comercial regionalizado para os integradores de todos os estados nordestinos.",
+        "Você anda perdendo venda porque o cliente não consegue financiar? Aqui na Aldo Solar você oferece financiamento com taxas a partir de 1,29% ao mês.",
+        "Na Aldo Solar, logística é coisa séria... Há mais de 40 anos construindo confiança... Onde tem projeto solar, tem Aldo Solar.",
+        "Financiamento não aprovou? Calma, integrador... ainda dá jogo! Muitos clientes já possuem uma carta de consórcio contemplada...",
+        "A Seleção saiu da Copa... mas a nossa disputa continua! Na Copa Gigantes do Financiamento Aldo Solar, ainda dá tempo de entrar em campo..."
+      ],
+      "cta_predominante": "Enviar mensagem pelo WhatsApp / Faça sua cotação / Cadastre-se",
+      "notas_visuais": "Fotos de produto (inversores GoodWe), grafismo corporativo azul/branco, uso pesado de hashtags e emojis (⚡🔋✅🚀)"
+    },
+    {
+      "nome": "NeoSolar Energia",
+      "page_id": "146818045376073",
+      "handle": "neosolar.com.br",
+      "total_anuncios_ativos": 7,
+      "publico_alvo": "B2B - integradores, foco em Off-Grid/bombeamento solar",
+      "anuncio_mais_antigo_ativo": {
+        "id": "909870225218962",
+        "inicio_veiculacao": "2026-03-16"
+      },
+      "amostras_copy": [
+        "Com a NeoSolar, você centraliza tudo em um único parceiro que é líder em OFF-Grid, com portfólio completo...",
+        "Integrador, você já perdeu venda porque a distribuidora demorou pra responder? No projeto Off Grid, cada hora conta...",
+        "Integrador, seu próximo projeto não cabe num kit padrão? Demandas complexas exigem engenharia... Equipe com +15 anos de experiência...",
+        "Com a NeoSolar, você trabalha com quem é líder em Off Grid, tem credibilidade reconhecida e foi certificada pela ABSOLAR com o selo Triplo A.",
+        "Vai arriscar ficar sem energia e perder o gol do Brasil? Garanta energia para acompanhar todos os jogos da Copa com a Power Station da NeoSolar."
+      ],
+      "cta_predominante": "Cadastre-se / Saiba mais / Comprar agora (loja para o anúncio de Power Station)",
+      "notas_visuais": "Vídeos institucionais + fotos de produto (inversores, kits), 1 anúncio de e-commerce direto (catálogo Criteo) para itens avulsos"
+    },
+    {
+      "nome": "Dalsun",
+      "page_id": "106279958843567",
+      "handle": "dalsun.com.br / simulacao.dalsun.com.br",
+      "total_anuncios_ativos": 7,
+      "publico_alvo": "B2C - consumidor residencial final",
+      "anuncio_mais_antigo_ativo": {
+        "id": "todos iniciados entre 2026-06-30 e 2026-07-06",
+        "inicio_veiculacao": "2026-06-30"
+      },
+      "amostras_copy": [
+        "Gastando R$400, R$500, R$600 ou mais de conta de luz? Com a Energia Solar da Dalsun você garante uma economia de até 90% na sua conta de luz todos os meses. Clique em Saiba Mais e solicite um orçamento agora mesmo. 📲☀️"
+      ],
+      "cta_predominante": "Learn More (Solicite um orçamento)",
+      "notas_visuais": "Foto real de telhado residencial com painéis instalados, céu azul, texto sobreposto com simulador de economia. Mesmo criativo repetido em todas as 7 variações ativas."
+    },
+    {
+      "nome": "SGV Solar",
+      "page_id": "107977037228144",
+      "handle": "sgvsolar.com.br",
+      "total_anuncios_ativos": 2,
+      "publico_alvo": "B2B - integradores, distribuidor de kits híbridos",
+      "amostras_copy": [
+        "Tudo o que seu projeto precisa em um só lugar: inversores, baterias, painéis solares e suporte especializado.",
+        "Venda mais com a SGV Solar. Kits híbridos completos, logística eficiente e atendimento dedicado aos integradores. Pronta entrega em todo Nordeste."
+      ],
+      "cta_predominante": "Fale conosco",
+      "notas_visuais": "Foto de produto/caixa do kit com faixa vermelha 'PRONTA ENTREGA EM TODO NORDESTE', tipografia bold amarela/vermelha"
+    }
+  ]
+}
