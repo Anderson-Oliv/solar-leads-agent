@@ -77,8 +77,13 @@ def carregar_por_uf() -> pd.DataFrame:
 def carregar_por_segmento_classificacao() -> pd.DataFrame:
     """Segmento x classificacao (nao so o top 10 pre-somado) pra dar pra
     filtrar por faixa de score no cliente sem nova consulta ao Supabase -
-    ver v_leads_by_segmento_classificacao."""
-    resp = supabase.table("v_leads_by_segmento_classificacao").select("*").execute()
+    ver v_leads_by_segmento_classificacao.
+
+    limit(5000) explicito: a view tem ~2200 linhas (segmento x
+    classificacao) e o limite default do PostgREST (1000) cortava o
+    resultado pela metade sem erro nenhum - os totais por segmento
+    ficavam errados de forma silenciosa."""
+    resp = supabase.table("v_leads_by_segmento_classificacao").select("*").limit(5000).execute()
     return pd.DataFrame(resp.data)
 
 
