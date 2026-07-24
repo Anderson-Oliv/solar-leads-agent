@@ -132,7 +132,7 @@ with tab_geral:
     st.subheader("Funil de prospecção")
     with st.container(border=True):
         valores_funil = [EMPRESAS_MAPEADAS, qualificados_60, quentes_80]
-        labels_funil = ["Empresas mapeadas", "Leads qualificados (score ≥ 60)", "Leads quentes (score ≥ 80)"]
+        labels_funil = ["Empresas mapeadas", "Qualificados (score ≥ 60)", "Quentes (score ≥ 80)"]
         textos_funil = [f"{fmt_int(v)}<br>{v / valores_funil[0] * 100:.1f}%" for v in valores_funil]
         fig_funil = go.Figure(
             go.Funnel(
