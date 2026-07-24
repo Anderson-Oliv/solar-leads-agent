@@ -116,202 +116,218 @@ df_class = carregar_por_classificacao()
 total_geral = int(df_class["total"].sum()) if not df_class.empty else 0
 qualificados_60 = int(df_class.loc[df_class["classificacao"].isin(["🟢 Lead Quente", "🟡 Lead Bom"]), "total"].sum()) if not df_class.empty else 0
 quentes_80 = int(df_class.loc[df_class["classificacao"] == "🟢 Lead Quente", "total"].sum()) if not df_class.empty else 0
-
-st.subheader("Funil de prospecção")
-valores_funil = [EMPRESAS_MAPEADAS, qualificados_60, quentes_80]
-labels_funil = ["Empresas mapeadas", "Leads qualificados (score ≥ 60)", "Leads quentes (score ≥ 80)"]
-textos_funil = [f"{fmt_int(v)}<br>{v / valores_funil[0] * 100:.1f}%" for v in valores_funil]
-fig_funil = go.Figure(
-    go.Funnel(
-        y=labels_funil,
-        x=valores_funil,
-        text=textos_funil,
-        textposition="outside",
-        textinfo="text",
-        textfont=dict(color=INK_MUTED, size=14),
-        marker=dict(color=[BLUE, ORANGE, AQUA], line=dict(color=SURFACE, width=2)),
-        connector=dict(line=dict(color=BASELINE, width=1, dash="dot")),
-    )
-)
-fig_funil.update_layout(**base_layout(height=340, margin=dict(l=8, r=140, t=8, b=8)))
-fig_funil.update_xaxes(range=[0, EMPRESAS_MAPEADAS * 1.3], visible=False)
-fig_funil.update_yaxes(**axis_style(tickfont=dict(color=INK_MUTED, size=13)))
-st.plotly_chart(fig_funil, use_container_width=True)
-
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total qualificados", fmt_int(total_geral))
-for col, classe in zip([col2, col3, col4], CLASSIFICACAO_ORDEM):
-    valor = int(df_class.loc[df_class["classificacao"] == classe, "total"].sum()) if not df_class.empty else 0
-    col.metric(classe, fmt_int(valor))
-
 total_piloto, com_contato = carregar_stats_contato()
-col_c1, col_c2, col_c3 = st.columns(3)
-col_c1.metric(
-    "Leads quentes com contato (piloto)", fmt_int(com_contato),
-    help=f"{fmt_int(total_piloto)} leads quentes já processados no piloto de enriquecimento, de {fmt_int(quentes_80)} no total de leads quentes.",
-)
-col_c2.metric("Amostra do piloto processada", f"{fmt_int(total_piloto)} / {fmt_int(quentes_80)}")
-col_c3.metric(
-    "Próximo reprocessamento Firecrawl", PROXIMO_REPROCESSAMENTO_FIRECRAWL,
-    help="Decisão de 24/07/2026: manter o baseline atual do piloto até essa data, sem investir em crédito Firecrawl antes disso.",
+
+tab_geral, tab_segmentacao, tab_timeline, tab_explorar = st.tabs(
+    ["📊 Visão geral", "🗂️ Segmentação & UF", "🕐 Timeline", "🔍 Explorar leads"]
 )
 
-st.divider()
-
-col_esq, col_dir = st.columns([1, 1])
-
-with col_esq:
-    st.subheader("Distribuição por score")
-    if not df_class.empty:
-        df_class["classificacao"] = pd.Categorical(df_class["classificacao"], categories=CLASSIFICACAO_ORDEM, ordered=True)
-        df_class = df_class.sort_values("classificacao")
-        cores = [ORDINAL_BLUE[c] for c in df_class["classificacao"]]
-        fig = go.Figure(
-            go.Bar(
-                x=df_class["classificacao"].astype(str),
-                y=df_class["total"],
-                marker=dict(color=cores, cornerradius=4),
-                text=[fmt_int(v) for v in df_class["total"]],
+with tab_geral:
+    st.subheader("Funil de prospecção")
+    with st.container(border=True):
+        valores_funil = [EMPRESAS_MAPEADAS, qualificados_60, quentes_80]
+        labels_funil = ["Empresas mapeadas", "Leads qualificados (score ≥ 60)", "Leads quentes (score ≥ 80)"]
+        textos_funil = [f"{fmt_int(v)}<br>{v / valores_funil[0] * 100:.1f}%" for v in valores_funil]
+        fig_funil = go.Figure(
+            go.Funnel(
+                y=labels_funil,
+                x=valores_funil,
+                text=textos_funil,
                 textposition="outside",
-                textfont=dict(color=INK_MUTED, size=12),
-                customdata=[fmt_int(v) for v in df_class["total"]],
-                hovertemplate="%{x}<br>%{customdata} empresas<extra></extra>",
-                width=0.5,
+                textinfo="text",
+                textfont=dict(color=INK_MUTED, size=14),
+                marker=dict(color=[BLUE, ORANGE, AQUA], line=dict(color=SURFACE, width=2)),
+                connector=dict(line=dict(color=BASELINE, width=1, dash="dot")),
             )
         )
-        fig.update_layout(**base_layout(showlegend=False, height=320))
-        fig.update_xaxes(**axis_style())
-        fig.update_yaxes(**axis_style(title="Empresas"))
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("Sem dados na view v_leads_by_classificacao.")
+        fig_funil.update_layout(**base_layout(height=340, margin=dict(l=8, r=140, t=8, b=8)))
+        fig_funil.update_xaxes(range=[0, EMPRESAS_MAPEADAS * 1.3], visible=False)
+        fig_funil.update_yaxes(**axis_style(tickfont=dict(color=INK_MUTED, size=13)))
+        st.plotly_chart(fig_funil, use_container_width=True)
 
-with col_dir:
-    st.subheader("Top 10 segmentos")
-    df_seg = carregar_por_segmento(10)
-    if not df_seg.empty:
-        df_seg = df_seg.sort_values("total")
-        fig = go.Figure(
-            go.Bar(
-                x=df_seg["total"],
-                y=df_seg["segmento"],
-                orientation="h",
-                marker=dict(color=BLUE, cornerradius=4),
-                text=[fmt_int(v) for v in df_seg["total"]],
-                textposition="outside",
-                textfont=dict(color=INK_MUTED, size=11),
-                cliponaxis=False,
-                customdata=[fmt_int(v) for v in df_seg["total"]],
-                hovertemplate="%{y}<br>%{customdata} empresas<extra></extra>",
+    col1, col2, col3, col4 = st.columns(4)
+    with col1, st.container(border=True):
+        st.metric("Total qualificados", fmt_int(total_geral))
+    for col, classe in zip([col2, col3, col4], CLASSIFICACAO_ORDEM):
+        valor = int(df_class.loc[df_class["classificacao"] == classe, "total"].sum()) if not df_class.empty else 0
+        with col, st.container(border=True):
+            st.metric(classe, fmt_int(valor))
+
+    st.subheader("Piloto de enriquecimento de contato")
+    col_c1, col_c2, col_c3 = st.columns(3)
+    with col_c1, st.container(border=True):
+        st.metric(
+            "Leads quentes com contato (piloto)", fmt_int(com_contato),
+            help=f"{fmt_int(total_piloto)} leads quentes já processados no piloto de enriquecimento, de {fmt_int(quentes_80)} no total de leads quentes.",
+        )
+    with col_c2, st.container(border=True):
+        st.metric("Amostra do piloto processada", f"{fmt_int(total_piloto)} / {fmt_int(quentes_80)}")
+    with col_c3, st.container(border=True):
+        st.metric(
+            "Próximo reprocessamento Firecrawl", PROXIMO_REPROCESSAMENTO_FIRECRAWL,
+            help="Decisão de 24/07/2026: manter o baseline atual do piloto até essa data, sem investir em crédito Firecrawl antes disso.",
+        )
+
+with tab_segmentacao:
+    col_esq, col_dir = st.columns([1, 1])
+
+    with col_esq:
+        st.subheader("Distribuição por score")
+        with st.container(border=True):
+            if not df_class.empty:
+                df_class["classificacao"] = pd.Categorical(df_class["classificacao"], categories=CLASSIFICACAO_ORDEM, ordered=True)
+                df_class = df_class.sort_values("classificacao")
+                cores = [ORDINAL_BLUE[c] for c in df_class["classificacao"]]
+                fig = go.Figure(
+                    go.Bar(
+                        x=df_class["classificacao"].astype(str),
+                        y=df_class["total"],
+                        marker=dict(color=cores, cornerradius=4),
+                        text=[fmt_int(v) for v in df_class["total"]],
+                        textposition="outside",
+                        textfont=dict(color=INK_MUTED, size=12),
+                        customdata=[fmt_int(v) for v in df_class["total"]],
+                        hovertemplate="%{x}<br>%{customdata} empresas<extra></extra>",
+                        width=0.5,
+                    )
+                )
+                fig.update_layout(**base_layout(showlegend=False, height=320))
+                fig.update_xaxes(**axis_style())
+                fig.update_yaxes(**axis_style(title="Empresas"))
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Sem dados na view v_leads_by_classificacao.")
+
+    with col_dir:
+        st.subheader("Top 10 segmentos")
+        with st.container(border=True):
+            df_seg = carregar_por_segmento(10)
+            if not df_seg.empty:
+                df_seg = df_seg.sort_values("total")
+                fig = go.Figure(
+                    go.Bar(
+                        x=df_seg["total"],
+                        y=df_seg["segmento"],
+                        orientation="h",
+                        marker=dict(color=BLUE, cornerradius=4),
+                        text=[fmt_int(v) for v in df_seg["total"]],
+                        textposition="outside",
+                        textfont=dict(color=INK_MUTED, size=11),
+                        cliponaxis=False,
+                        customdata=[fmt_int(v) for v in df_seg["total"]],
+                        hovertemplate="%{y}<br>%{customdata} empresas<extra></extra>",
+                    )
+                )
+                fig.update_layout(**base_layout(showlegend=False, height=320, margin=dict(l=8, r=48, t=8, b=8)))
+                fig.update_xaxes(**axis_style(title="Empresas", range=[0, df_seg["total"].max() * 1.18]))
+                fig.update_yaxes(**axis_style())
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Sem dados na view v_leads_by_segmento.")
+
+    st.subheader("Distribuição por UF")
+    with st.container(border=True):
+        df_uf = carregar_por_uf()
+        if not df_uf.empty:
+            pivot_uf = df_uf.pivot_table(index="uf", columns="classificacao", values="total", fill_value=0)
+            ordem_uf = pivot_uf.sum(axis=1).sort_values(ascending=False).index
+            pivot_uf = pivot_uf.reindex(ordem_uf)
+            classes_presentes = [c for c in CLASSIFICACAO_ORDEM if c in pivot_uf.columns]
+
+            fig = go.Figure()
+            for i, classe in enumerate(classes_presentes):
+                # so o segmento mais externo da pilha (o ultimo a entrar) recebe ponta
+                # arredondada - o resto fica reto, encostando na barra vizinha.
+                eh_externo = i == len(classes_presentes) - 1
+                fig.add_trace(
+                    go.Bar(
+                        name=classe,
+                        x=pivot_uf.index,
+                        y=pivot_uf[classe],
+                        marker=dict(
+                            color=ORDINAL_BLUE[classe],
+                            cornerradius=4 if eh_externo else 0,
+                            line=dict(color="#fcfcfb", width=2),
+                        ),
+                        customdata=[fmt_int(v) for v in pivot_uf[classe]],
+                        hovertemplate=f"%{{x}} · {classe}<br>%{{customdata}} empresas<extra></extra>",
+                    )
+                )
+            fig.update_layout(**base_layout(barmode="stack", height=380))
+            fig.update_xaxes(**axis_style())
+            fig.update_yaxes(**axis_style(title="Empresas"))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Sem dados na view v_leads_by_uf.")
+
+with tab_timeline:
+    df_tl = carregar_timeline()
+    if len(df_tl) > 1:
+        st.subheader("Novos leads ao longo do tempo")
+        with st.container(border=True):
+            df_tl["dia"] = pd.to_datetime(df_tl["dia"])
+            fig = go.Figure(
+                go.Scatter(
+                    x=df_tl["dia"], y=df_tl["total"], mode="lines+markers",
+                    line=dict(color=BLUE, width=2), marker=dict(size=8, color=BLUE, line=dict(color="#fcfcfb", width=2)),
+                    customdata=[fmt_int(v) for v in df_tl["total"]],
+                    hovertemplate="%{x|%d/%m/%Y}<br>%{customdata} leads<extra></extra>",
+                )
             )
+            fig.update_layout(**base_layout(showlegend=False, height=280))
+            fig.update_xaxes(**axis_style())
+            fig.update_yaxes(**axis_style(title="Leads"))
+            st.plotly_chart(fig, use_container_width=True)
+        st.caption("Reflete a data de carga (`data_criacao`) — importação em lote ainda não tem atualização diária de score.")
+    elif not df_tl.empty:
+        data_unica = pd.to_datetime(df_tl["dia"].iloc[0]).strftime("%d/%m/%Y")
+        st.caption(
+            f"📅 Todos os {fmt_int(total_geral)} leads foram carregados em uma única "
+            f"data ({data_unica}) — o gráfico de evolução aparece aqui assim que "
+            f"houver mais de uma data de carga."
         )
-        fig.update_layout(**base_layout(showlegend=False, height=320, margin=dict(l=8, r=48, t=8, b=8)))
-        fig.update_xaxes(**axis_style(title="Empresas", range=[0, df_seg["total"].max() * 1.18]))
-        fig.update_yaxes(**axis_style())
-        st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("Sem dados na view v_leads_by_segmento.")
+        st.caption("Sem dados de carga ainda.")
 
-st.subheader("Distribuição por UF")
-df_uf = carregar_por_uf()
-if not df_uf.empty:
-    pivot_uf = df_uf.pivot_table(index="uf", columns="classificacao", values="total", fill_value=0)
-    ordem_uf = pivot_uf.sum(axis=1).sort_values(ascending=False).index
-    pivot_uf = pivot_uf.reindex(ordem_uf)
-    classes_presentes = [c for c in CLASSIFICACAO_ORDEM if c in pivot_uf.columns]
+with tab_explorar:
+    st.subheader("Explorar leads — piloto de enriquecimento de contato")
 
-    fig = go.Figure()
-    for i, classe in enumerate(classes_presentes):
-        # so o segmento mais externo da pilha (o ultimo a entrar) recebe ponta
-        # arredondada - o resto fica reto, encostando na barra vizinha.
-        eh_externo = i == len(classes_presentes) - 1
-        fig.add_trace(
-            go.Bar(
-                name=classe,
-                x=pivot_uf.index,
-                y=pivot_uf[classe],
-                marker=dict(
-                    color=ORDINAL_BLUE[classe],
-                    cornerradius=4 if eh_externo else 0,
-                    line=dict(color="#fcfcfb", width=2),
-                ),
-                customdata=[fmt_int(v) for v in pivot_uf[classe]],
-                hovertemplate=f"%{{x}} · {classe}<br>%{{customdata}} empresas<extra></extra>",
-            )
+    f1, f2, f3 = st.columns([1, 1, 1])
+    ufs_selecionadas = f1.multiselect("UF", options=UFS_ICP, default=[])
+    segmento_busca = f2.text_input("Segmento contém", value="")
+    score_min = f3.slider("Score mínimo", min_value=0, max_value=100, value=60, step=5)
+
+    df_piloto = carregar_piloto_enriquecido()
+
+    if df_piloto.empty:
+        st.info("Nenhum CNPJ processado no piloto de enriquecimento ainda.")
+    else:
+        filtro = df_piloto["score"] >= score_min
+        if ufs_selecionadas:
+            filtro &= df_piloto["uf"].isin(ufs_selecionadas)
+        if segmento_busca:
+            filtro &= df_piloto["segmento"].str.contains(segmento_busca, case=False, na=False)
+        df_piloto_filtrado = df_piloto[filtro]
+
+        st.caption(
+            f"{len(df_piloto_filtrado)} de {len(df_piloto)} CNPJs do piloto de enriquecimento passam nesse "
+            f"filtro (o piloto cobre {len(df_piloto)} dos {fmt_int(quentes_80)} leads quentes no total)."
         )
-    fig.update_layout(**base_layout(barmode="stack", height=380))
-    fig.update_xaxes(**axis_style())
-    fig.update_yaxes(**axis_style(title="Empresas"))
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("Sem dados na view v_leads_by_uf.")
 
-df_tl = carregar_timeline()
-if len(df_tl) > 1:
-    st.subheader("Novos leads ao longo do tempo")
-    df_tl["dia"] = pd.to_datetime(df_tl["dia"])
-    fig = go.Figure(
-        go.Scatter(
-            x=df_tl["dia"], y=df_tl["total"], mode="lines+markers",
-            line=dict(color=BLUE, width=2), marker=dict(size=8, color=BLUE, line=dict(color="#fcfcfb", width=2)),
-            customdata=[fmt_int(v) for v in df_tl["total"]],
-            hovertemplate="%{x|%d/%m/%Y}<br>%{customdata} leads<extra></extra>",
-        )
-    )
-    fig.update_layout(**base_layout(showlegend=False, height=280))
-    fig.update_xaxes(**axis_style())
-    fig.update_yaxes(**axis_style(title="Leads"))
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption("Reflete a data de carga (`data_criacao`) — importação em lote ainda não tem atualização diária de score.")
-elif not df_tl.empty:
-    data_unica = pd.to_datetime(df_tl["dia"].iloc[0]).strftime("%d/%m/%Y")
-    st.caption(
-        f"📅 Todos os {fmt_int(total_geral)} leads foram carregados em uma única "
-        f"data ({data_unica}) — o gráfico de evolução aparece aqui assim que "
-        f"houver mais de uma data de carga."
-    )
-else:
-    st.caption("Sem dados de carga ainda.")
+        tem_contato = df_piloto_filtrado["tem_contato"] == True  # noqa: E712 - comparacao explicita, coluna sem NaN aqui
 
-st.divider()
-st.subheader("Explorar leads — piloto de enriquecimento de contato")
+        df_com_contato = df_piloto_filtrado[tem_contato].drop(columns=["tem_contato"]).copy()
+        df_com_contato[["telefone", "email", "site"]] = df_com_contato[["telefone", "email", "site"]].fillna("—")
+        df_sem_contato = df_piloto_filtrado[~tem_contato].drop(columns=["telefone", "email", "site", "tem_contato"])
 
-f1, f2, f3 = st.columns([1, 1, 1])
-ufs_selecionadas = f1.multiselect("UF", options=UFS_ICP, default=[])
-segmento_busca = f2.text_input("Segmento contém", value="")
-score_min = f3.slider("Score mínimo", min_value=0, max_value=100, value=60, step=5)
+        st.subheader(f"📞 Leads com contato disponível ({len(df_com_contato)})")
+        if not df_com_contato.empty:
+            st.dataframe(df_com_contato, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum lead com contato disponível nesse filtro.")
 
-df_piloto = carregar_piloto_enriquecido()
-
-if df_piloto.empty:
-    st.info("Nenhum CNPJ processado no piloto de enriquecimento ainda.")
-else:
-    filtro = df_piloto["score"] >= score_min
-    if ufs_selecionadas:
-        filtro &= df_piloto["uf"].isin(ufs_selecionadas)
-    if segmento_busca:
-        filtro &= df_piloto["segmento"].str.contains(segmento_busca, case=False, na=False)
-    df_piloto_filtrado = df_piloto[filtro]
-
-    st.caption(
-        f"{len(df_piloto_filtrado)} de {len(df_piloto)} CNPJs do piloto de enriquecimento passam nesse "
-        f"filtro (o piloto cobre {len(df_piloto)} dos {fmt_int(quentes_80)} leads quentes no total)."
-    )
-
-    tem_contato = df_piloto_filtrado["tem_contato"] == True  # noqa: E712 - comparacao explicita, coluna sem NaN aqui
-
-    df_com_contato = df_piloto_filtrado[tem_contato].drop(columns=["tem_contato"]).copy()
-    df_com_contato[["telefone", "email", "site"]] = df_com_contato[["telefone", "email", "site"]].fillna("—")
-    df_sem_contato = df_piloto_filtrado[~tem_contato].drop(columns=["telefone", "email", "site", "tem_contato"])
-
-    st.subheader(f"📞 Leads com contato disponível ({len(df_com_contato)})")
-    if not df_com_contato.empty:
-        st.dataframe(df_com_contato, use_container_width=True, hide_index=True)
-    else:
-        st.info("Nenhum lead com contato disponível nesse filtro.")
-
-    st.subheader(f"◻️ Leads sem contato ({len(df_sem_contato)})")
-    if not df_sem_contato.empty:
-        st.dataframe(df_sem_contato, use_container_width=True, hide_index=True)
-    else:
-        st.info("Nenhum lead sem contato nesse filtro.")
+        st.subheader(f"◻️ Leads sem contato ({len(df_sem_contato)})")
+        if not df_sem_contato.empty:
+            st.dataframe(df_sem_contato, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum lead sem contato nesse filtro.")

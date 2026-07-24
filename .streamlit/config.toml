@@ -1,0 +1,11 @@
+# Tema fixo em modo claro, espelhando a paleta validada em app/viz_theme.py.
+# Sem isso o Streamlit usa "auto" e segue o SO/navegador do visitante -
+# resultado: pagina escura com graficos Plotly claros (hardcoded), um
+# choque visual. Se a paleta em viz_theme.py mudar, atualizar aqui junto.
+[theme]
+base = "light"
+primaryColor = "#2a78d6"
+backgroundColor = "#fcfcfb"
+secondaryBackgroundColor = "#f2f1ea"
+textColor = "#0b0b0b"
+font = "sans-serif"
