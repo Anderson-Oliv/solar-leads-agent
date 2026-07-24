@@ -1,21 +1,30 @@
 """
-Piloto de enriquecimento de contato para os leads quentes (Sprint 02, secao 5 -
-"SDR IA - Prototipo"): tenta achar email/telefone de uma amostra estratificada
-(UF x segmento) dos leads classificados como Lead Quente, pra medir taxa de
-assertividade antes de rodar em escala nos 17.761.
+Enriquecimento mensal de contato dos leads quentes (Sprint 02, secao 5 -
+"SDR IA - Prototipo"): tenta achar email/telefone de uma amostra mensal dos
+leads classificados como Lead Quente, priorizando SP (capital + interior,
+uf="SP" cobre o estado inteiro) e dividindo o resto da cota entre os outros
+UFs do ICP.
+
+Decisao de 24/07/2026: SP tem 8.885 leads quentes disponiveis (metade do
+total nacional) - da pra manter ~500/mes so de SP por bem mais de um ano.
+
+Cada lote SO amostra CNPJs que ainda nao passaram pelo funil em um mes
+anterior (ver buscar_ja_processados) - sem isso, um CNPJ ja enriquecido
+poderia ser sorteado de novo, ocupando uma vaga da cota sem gerar lead novo.
 
 Funil de 2 niveis por empresa:
   1. BrasilAPI (wrapper gratuito dos dados publicos de CNPJ da Receita) - pode
      trazer email/telefone se a empresa preencheu isso no cadastro.
   2. Fallback via busca na web (Firecrawl CLI) quando a BrasilAPI nao tem
      contato - procura o site oficial/LinkedIn da empresa como canal
-     alternativo de contato.
+     alternativo de contato. So esse nivel consome credito Firecrawl (~4
+     creditos/chamada) - o nivel 1 e de graca.
 
 Resultado vai pra tabela `enriquecimento_contato_piloto` no Supabase, com uma
 linha por empresa amostrada e o que foi encontrado em cada nivel.
 
 Uso:
-    python3 app/enriquecer_contato_leads_quentes.py --por-celula 6
+    python3 app/enriquecer_contato_leads_quentes.py --sp 500 --resto 500
 """
 
 import argparse
@@ -25,7 +34,6 @@ import re
 import subprocess
 import sys
 import time
-from collections import defaultdict
 from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent
@@ -41,6 +49,7 @@ TABELA_DESTINO = "enriquecimento_contato_piloto"
 BRASILAPI_URL = "https://brasilapi.com.br/api/cnpj/v1/{cnpj}"
 BRASILAPI_PAUSA_S = 1.3
 BRASILAPI_MAX_TENTATIVAS = 3
+UF_PRIORIDADE = "SP"
 
 BUCKETS = [
     ("Combustível", ["combustív", "combustivel"]),
@@ -86,17 +95,30 @@ def buscar_leads_quentes() -> list[dict]:
     return registros
 
 
-def amostra_estratificada(leads: list[dict], por_celula: int) -> list[dict]:
-    celulas: dict = defaultdict(list)
-    for lead in leads:
-        lead["segmento_bucket"] = bucket_de(lead.get("segmento"))
-        celulas[(lead["uf"], lead["segmento_bucket"])].append(lead)
+def amostra_mensal(leads: list[dict], ja_enriquecidos: set, alvo_sp: int, alvo_resto: int) -> list[dict]:
+    """SP sempre priorizado; o resto da cota fica com os outros UFs do ICP.
+    So entram CNPJs fora de `ja_enriquecidos` - garante que a amostra do
+    mes e sempre gente nova, nunca reprocessa quem ja foi enriquecido
+    (mesmo que tenha sido sorteado de novo pelo acaso)."""
+    candidatos = [lead for lead in leads if lead["cnpj"] not in ja_enriquecidos]
+    pool_sp = [lead for lead in candidatos if lead["uf"] == UF_PRIORIDADE]
+    pool_resto = [lead for lead in candidatos if lead["uf"] != UF_PRIORIDADE]
 
     rng = random.Random(SEED)
-    amostra = []
-    for chave, grupo in celulas.items():
-        rng.shuffle(grupo)
-        amostra.extend(grupo[:por_celula])
+    rng.shuffle(pool_sp)
+    rng.shuffle(pool_resto)
+
+    amostra_sp = pool_sp[:alvo_sp]
+    amostra_resto = pool_resto[:alvo_resto]
+
+    if len(amostra_sp) < alvo_sp:
+        print(f"aviso: só {len(amostra_sp)} leads novos de SP disponíveis (pedido {alvo_sp}).")
+    if len(amostra_resto) < alvo_resto:
+        print(f"aviso: só {len(amostra_resto)} leads novos fora de SP disponíveis (pedido {alvo_resto}).")
+
+    amostra = amostra_sp + amostra_resto
+    for lead in amostra:
+        lead["segmento_bucket"] = bucket_de(lead.get("segmento"))
     return amostra
 
 
@@ -184,11 +206,13 @@ def buscar_ja_processados() -> dict:
     return resultados
 
 
-def enriquecer(amostra: list[dict]) -> list[dict]:
-    ja_processados = buscar_ja_processados()
-    if ja_processados:
-        print(f"{len(ja_processados)} empresas ja processadas antes - vao ser reaproveitadas.", flush=True)
-
+def enriquecer(amostra: list[dict], ja_processados: dict) -> list[dict]:
+    """ja_processados e passado pelo chamador (main) em vez de buscado aqui
+    de novo - amostra_mensal ja usa os mesmos dados pra montar a amostra,
+    entao uma segunda consulta a TABELA_DESTINO seria redundante. Ainda
+    assim mantido como cheque defensivo: se por algum motivo um CNPJ ja
+    processado entrar na amostra, reaproveita o resultado em vez de gastar
+    credito Firecrawl de novo."""
     resultados = []
     total = len(amostra)
     for i, lead in enumerate(amostra, start=1):
@@ -257,18 +281,24 @@ def imprimir_resumo(resultados: list[dict]) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Piloto de enriquecimento de contato dos leads quentes.")
-    parser.add_argument("--por-celula", type=int, default=6, help="Quantas empresas amostrar por celula (UF x segmento).")
+    parser = argparse.ArgumentParser(description="Enriquecimento mensal de contato dos leads quentes, priorizando SP.")
+    parser.add_argument("--sp", type=int, default=500, help="Quantos leads novos de SP amostrar neste lote.")
+    parser.add_argument("--resto", type=int, default=500, help="Quantos leads novos fora de SP amostrar neste lote.")
     args = parser.parse_args()
 
     print("Buscando leads quentes no Supabase...")
     leads = buscar_leads_quentes()
     print(f"{len(leads)} leads quentes encontrados.")
 
-    amostra = amostra_estratificada(leads, args.por_celula)
-    print(f"Amostra estratificada: {len(amostra)} empresas ({args.por_celula} por celula UF x segmento).")
+    print("Verificando quem já foi enriquecido em lotes anteriores...")
+    ja_processados = buscar_ja_processados()
+    print(f"{len(ja_processados)} CNPJs já enriquecidos antes - excluídos da amostra deste lote.")
 
-    resultados = enriquecer(amostra)
+    amostra = amostra_mensal(leads, set(ja_processados.keys()), args.sp, args.resto)
+    qtd_sp = sum(1 for lead in amostra if lead["uf"] == UF_PRIORIDADE)
+    print(f"Amostra deste lote: {len(amostra)} empresas novas ({qtd_sp} de SP, {len(amostra) - qtd_sp} do resto do ICP).")
+
+    resultados = enriquecer(amostra, ja_processados)
     imprimir_resumo(resultados)
 
 
