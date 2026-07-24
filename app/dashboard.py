@@ -43,6 +43,14 @@ st.set_page_config(page_title="Sistema de Leads — Dashboard", layout="wide")
 
 UFS_ICP = ["SP", "MG", "GO", "MT", "MS", "PR"]
 
+# Filtro do grafico "Top 10 segmentos" - por faixa de classificacao, nao
+# score continuo: um slider 0-100 precisaria agregar direto na tabela
+# leads_qualificados (419k linhas) a cada movimento, e essa query leva ~4-6s
+# mesmo com indice. Como classificacao ja e a faixa de score usada no resto
+# do dashboard (funil, KPIs), filtrar por ela reaproveita os dados cacheados
+# de carregar_por_segmento_classificacao() sem nenhuma consulta nova.
+FILTROS_SCORE_SEGMENTO = ["Todos", "🟡 Lead Bom+ (score ≥ 60)", "🟢 Lead Quente (score ≥ 80)"]
+
 # Nao vem de tabela propria - a base bruta da RFB foi processada em lote e o
 # total de empresas mapeadas so ficou registrado no card de status do projeto
 # (17/07/2026). Atualizar aqui se uma nova expansao de base for feita.
@@ -66,8 +74,11 @@ def carregar_por_uf() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=3600)
-def carregar_por_segmento(top_n: int = 10) -> pd.DataFrame:
-    resp = supabase.table("v_leads_by_segmento").select("*").order("total", desc=True).limit(top_n).execute()
+def carregar_por_segmento_classificacao() -> pd.DataFrame:
+    """Segmento x classificacao (nao so o top 10 pre-somado) pra dar pra
+    filtrar por faixa de score no cliente sem nova consulta ao Supabase -
+    ver v_leads_by_segmento_classificacao."""
+    resp = supabase.table("v_leads_by_segmento_classificacao").select("*").execute()
     return pd.DataFrame(resp.data)
 
 
@@ -210,10 +221,24 @@ with tab_segmentacao:
 
     with col_dir:
         st.subheader("Top 10 segmentos")
+        filtro_score_seg = st.segmented_control(
+            "Filtrar por score",
+            FILTROS_SCORE_SEGMENTO,
+            default=FILTROS_SCORE_SEGMENTO[0],
+            label_visibility="collapsed",
+            key="filtro_score_segmentos",
+        )
         with st.container(border=True):
-            df_seg = carregar_por_segmento(10)
+            df_seg_completo = carregar_por_segmento_classificacao()
+            if filtro_score_seg == FILTROS_SCORE_SEGMENTO[2]:
+                df_seg_filtrado = df_seg_completo[df_seg_completo["classificacao"] == "🟢 Lead Quente"]
+            elif filtro_score_seg == FILTROS_SCORE_SEGMENTO[1]:
+                df_seg_filtrado = df_seg_completo[df_seg_completo["classificacao"].isin(["🟢 Lead Quente", "🟡 Lead Bom"])]
+            else:
+                df_seg_filtrado = df_seg_completo
+            df_seg = df_seg_filtrado.groupby("segmento", as_index=False)["total"].sum()
+            df_seg = df_seg.sort_values("total", ascending=False).head(10).sort_values("total")
             if not df_seg.empty:
-                df_seg = df_seg.sort_values("total")
                 fig = go.Figure(
                     go.Bar(
                         x=df_seg["total"],
@@ -233,7 +258,7 @@ with tab_segmentacao:
                 fig.update_yaxes(**axis_style())
                 st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
             else:
-                st.info("Sem dados na view v_leads_by_segmento.")
+                st.info("Sem dados na view v_leads_by_segmento_classificacao.")
 
     st.subheader("Distribuição por UF")
     with st.container(border=True):
