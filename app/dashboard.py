@@ -79,12 +79,28 @@ def carregar_por_segmento_classificacao() -> pd.DataFrame:
     filtrar por faixa de score no cliente sem nova consulta ao Supabase -
     ver v_leads_by_segmento_classificacao.
 
-    limit(5000) explicito: a view tem ~2200 linhas (segmento x
-    classificacao) e o limite default do PostgREST (1000) cortava o
-    resultado pela metade sem erro nenhum - os totais por segmento
-    ficavam errados de forma silenciosa."""
-    resp = supabase.table("v_leads_by_segmento_classificacao").select("*").limit(5000).execute()
-    return pd.DataFrame(resp.data)
+    Pagina em blocos de 1000: esse projeto Supabase tem db-max-rows=1000
+    no PostgREST, que TRAVA a resposta em 1000 linhas mesmo com
+    .limit(5000) explicito (confirmado batendo direto no endpoint REST) -
+    a view tem ~2200 linhas, entao sem paginacao a segunda metade some
+    silenciosamente e os totais por segmento saem errados sem erro nenhum."""
+    paginas = []
+    offset = 0
+    tamanho_pagina = 1000
+    while True:
+        resp = (
+            supabase.table("v_leads_by_segmento_classificacao")
+            .select("*")
+            .range(offset, offset + tamanho_pagina - 1)
+            .execute()
+        )
+        if not resp.data:
+            break
+        paginas.append(pd.DataFrame(resp.data))
+        if len(resp.data) < tamanho_pagina:
+            break
+        offset += tamanho_pagina
+    return pd.concat(paginas, ignore_index=True) if paginas else pd.DataFrame()
 
 
 @st.cache_data(ttl=3600)
