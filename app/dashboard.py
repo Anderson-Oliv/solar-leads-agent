@@ -118,8 +118,12 @@ qualificados_60 = int(df_class.loc[df_class["classificacao"].isin(["🟢 Lead Qu
 quentes_80 = int(df_class.loc[df_class["classificacao"] == "🟢 Lead Quente", "total"].sum()) if not df_class.empty else 0
 total_piloto, com_contato = carregar_stats_contato()
 
-tab_geral, tab_segmentacao, tab_timeline, tab_explorar = st.tabs(
-    ["📊 Visão geral", "🗂️ Segmentação & UF", "🕐 Timeline", "🔍 Explorar leads"]
+# Aba de timeline ocultada por ora: toda a base ainda foi carregada numa
+# unica data (`data_criacao`), entao o grafico de evolucao nao teria o que
+# mostrar. Reativar (git log app/dashboard.py) quando houver mais de uma
+# data de carga.
+tab_geral, tab_segmentacao, tab_explorar = st.tabs(
+    ["📊 Visão geral", "🗂️ Segmentação & UF", "🔍 Explorar leads"]
 )
 
 with tab_geral:
@@ -259,35 +263,6 @@ with tab_segmentacao:
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("Sem dados na view v_leads_by_uf.")
-
-with tab_timeline:
-    df_tl = carregar_timeline()
-    if len(df_tl) > 1:
-        st.subheader("Novos leads ao longo do tempo")
-        with st.container(border=True):
-            df_tl["dia"] = pd.to_datetime(df_tl["dia"])
-            fig = go.Figure(
-                go.Scatter(
-                    x=df_tl["dia"], y=df_tl["total"], mode="lines+markers",
-                    line=dict(color=BLUE, width=2), marker=dict(size=8, color=BLUE, line=dict(color="#fcfcfb", width=2)),
-                    customdata=[fmt_int(v) for v in df_tl["total"]],
-                    hovertemplate="%{x|%d/%m/%Y}<br>%{customdata} leads<extra></extra>",
-                )
-            )
-            fig.update_layout(**base_layout(showlegend=False, height=280))
-            fig.update_xaxes(**axis_style())
-            fig.update_yaxes(**axis_style(title="Leads"))
-            st.plotly_chart(fig, use_container_width=True)
-        st.caption("Reflete a data de carga (`data_criacao`) — importação em lote ainda não tem atualização diária de score.")
-    elif not df_tl.empty:
-        data_unica = pd.to_datetime(df_tl["dia"].iloc[0]).strftime("%d/%m/%Y")
-        st.caption(
-            f"📅 Todos os {fmt_int(total_geral)} leads foram carregados em uma única "
-            f"data ({data_unica}) — o gráfico de evolução aparece aqui assim que "
-            f"houver mais de uma data de carga."
-        )
-    else:
-        st.caption("Sem dados de carga ainda.")
 
 with tab_explorar:
     st.subheader("Explorar leads — piloto de enriquecimento de contato")
