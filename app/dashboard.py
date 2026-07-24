@@ -26,11 +26,11 @@ from viz_theme import (  # noqa: E402
     AQUA,
     BASELINE,
     BLUE,
+    CLASSIFICACAO_COR,
     CLASSIFICACAO_ORDEM,
     GRIDLINE,
     INK_MUTED,
     ORANGE,
-    ORDINAL_BLUE,
     SURFACE,
     axis_style,
     base_layout,
@@ -181,7 +181,7 @@ with tab_segmentacao:
             if not df_class.empty:
                 df_class["classificacao"] = pd.Categorical(df_class["classificacao"], categories=CLASSIFICACAO_ORDEM, ordered=True)
                 df_class = df_class.sort_values("classificacao")
-                cores = [ORDINAL_BLUE[c] for c in df_class["classificacao"]]
+                cores = [CLASSIFICACAO_COR[c] for c in df_class["classificacao"]]
                 fig = go.Figure(
                     go.Bar(
                         x=df_class["classificacao"].astype(str),
@@ -249,7 +249,7 @@ with tab_segmentacao:
                         x=pivot_uf.index,
                         y=pivot_uf[classe],
                         marker=dict(
-                            color=ORDINAL_BLUE[classe],
+                            color=CLASSIFICACAO_COR[classe],
                             cornerradius=4 if eh_externo else 0,
                             line=dict(color="#fcfcfb", width=2),
                         ),

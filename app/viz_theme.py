@@ -18,14 +18,20 @@ BASELINE = "#c3c2b7"
 BLUE = "#2a78d6"    # slot 1
 ORANGE = "#eb6834"  # slot 2
 AQUA = "#1baf7a"    # slot 3
+YELLOW = "#d4b106"  # so para a classificacao do lead (nao faz parte do slot 1-3)
 
-# Ordinal (sequencial azul, um so hue) para a escala de qualidade do lead:
-# mais escuro = mais quente. Piso de contraste 2:1 no claro = step 250.
+# Categorica (identidade, nao ordinal) pra classificacao do lead - bate com
+# os emojis usados no resto da UI (KPIs, tabelas). Reusa AQUA/ORANGE dos
+# slots 1-3 pra "quente"/"nutricao" ficarem consistentes com o funil.
+# Trio validado com scripts/validate_palette.js do skill dataviz: CVD
+# deutan ΔE 9.8, visao normal ΔE 18.0 (pisos 8 e 15) - ambos acima do piso.
+# O aviso de contraste (<3:1 no claro, no amarelo e no aqua) e mitigado pela
+# legenda com emoji+texto sempre visivel nos dois graficos que usam este mapa.
 CLASSIFICACAO_ORDEM = ["🟢 Lead Quente", "🟡 Lead Bom", "🟠 Nutrição"]
-ORDINAL_BLUE = {
-    "🟢 Lead Quente": "#1c5cab",  # step 550
-    "🟡 Lead Bom": "#3987e5",     # step 400
-    "🟠 Nutrição": "#86b6ef",     # step 250
+CLASSIFICACAO_COR = {
+    "🟢 Lead Quente": AQUA,
+    "🟡 Lead Bom": YELLOW,
+    "🟠 Nutrição": ORANGE,
 }
 
 FONT = dict(family="'Fira Sans', system-ui, sans-serif", color=INK_PRIMARY, size=13)
