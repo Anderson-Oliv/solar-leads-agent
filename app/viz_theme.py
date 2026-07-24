@@ -28,7 +28,7 @@ ORDINAL_BLUE = {
     "🟠 Nutrição": "#86b6ef",     # step 250
 }
 
-FONT = dict(family="system-ui, -apple-system, 'Segoe UI', sans-serif", color=INK_PRIMARY, size=13)
+FONT = dict(family="'Fira Sans', system-ui, sans-serif", color=INK_PRIMARY, size=13)
 
 
 def base_layout(**overrides):

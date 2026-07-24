@@ -2,10 +2,16 @@
 # Sem isso o Streamlit usa "auto" e segue o SO/navegador do visitante -
 # resultado: pagina escura com graficos Plotly claros (hardcoded), um
 # choque visual. Se a paleta em viz_theme.py mudar, atualizar aqui junto.
+#
+# Par de fonte "Dashboard Data" (Fira Sans + Fira Code) - a familia Fira Sans
+# tambem esta em app/viz_theme.py (FONT) pros graficos Plotly baterem com o
+# resto da pagina. Fira Code entra automaticamente em qualquer texto `code`
+# (ex: o `leads_qualificados` no subtitulo).
 [theme]
 base = "light"
 primaryColor = "#2a78d6"
 backgroundColor = "#fcfcfb"
 secondaryBackgroundColor = "#f2f1ea"
 textColor = "#0b0b0b"
-font = "sans-serif"
+font = "Fira Sans:https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&display=swap"
+codeFont = "Fira Code:https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap"
