@@ -147,7 +147,11 @@ with tab_geral:
             )
         )
         fig_funil.update_layout(**base_layout(height=340, margin=dict(l=8, r=100, t=8, b=8)))
-        fig_funil.update_xaxes(range=[0, EMPRESAS_MAPEADAS * 1.3], visible=False)
+        # 1.6x (nao 1.3x): a primeira barra (100%) chega quase na ponta do
+        # eixo, entao e a que sobra menos folga pro texto "outside" - o
+        # multiplicador precisa dar espaco suficiente pra ELA, nao pras
+        # barras menores que já tem folga de sobra.
+        fig_funil.update_xaxes(range=[0, EMPRESAS_MAPEADAS * 1.6], visible=False)
         fig_funil.update_yaxes(**axis_style(tickfont=dict(color=INK_MUTED, size=13)))
         st.plotly_chart(fig_funil, use_container_width=True, config=PLOTLY_CONFIG)
 
