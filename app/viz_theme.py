@@ -36,6 +36,10 @@ CLASSIFICACAO_COR = {
 
 FONT = dict(family="'Fira Sans', system-ui, sans-serif", color=INK_PRIMARY, size=13)
 
+# Sem isso a barra de zoom/pan/download do Plotly fica fixa por cima do
+# grafico em telas touch (nao tem estado ':hover' pra sumir sozinha).
+PLOTLY_CONFIG = {"displayModeBar": False}
+
 
 def base_layout(**overrides):
     layout = dict(
@@ -60,6 +64,9 @@ def axis_style(**overrides):
         linecolor=BASELINE,
         tickfont=dict(color=INK_MUTED, size=11),
         title_font=dict(color=INK_SECONDARY, size=12),
+        # sem isso o rotulo de categoria (eixo y) corta em vez de empurrar
+        # a margem - critico em telas estreitas, ver PR do fix de mobile.
+        automargin=True,
     )
     style.update(overrides)
     return style
@@ -68,3 +75,14 @@ def axis_style(**overrides):
 def fmt_int(n) -> str:
     """Formata inteiro no padrao pt-BR (652.663)."""
     return f"{int(n):,}".replace(",", ".")
+
+
+def truncar(texto: str, max_len: int = 34) -> str:
+    """Corta rotulos longos demais pro eixo de um grafico (ex: nome de
+    segmento). O nome completo continua disponivel no hover via customdata -
+    truncar so evita que o rotulo espreme o grafico pra quase nada em telas
+    estreitas."""
+    texto = str(texto)
+    if len(texto) <= max_len:
+        return texto
+    return texto[: max_len - 1].rstrip() + "…"

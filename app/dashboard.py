@@ -31,10 +31,12 @@ from viz_theme import (  # noqa: E402
     GRIDLINE,
     INK_MUTED,
     ORANGE,
+    PLOTLY_CONFIG,
     SURFACE,
     axis_style,
     base_layout,
     fmt_int,
+    truncar,
 )
 
 st.set_page_config(page_title="Sistema de Leads — Dashboard", layout="wide")
@@ -123,7 +125,7 @@ total_piloto, com_contato = carregar_stats_contato()
 # mostrar. Reativar (git log app/dashboard.py) quando houver mais de uma
 # data de carga.
 tab_geral, tab_segmentacao, tab_explorar = st.tabs(
-    ["📊 Visão geral", "🗂️ Segmentação & UF", "🔍 Explorar leads"]
+    ["📊 Visão geral", "🗂️ Segmentação & UF", "🔍 Explorar"]
 )
 
 with tab_geral:
@@ -144,10 +146,10 @@ with tab_geral:
                 connector=dict(line=dict(color=BASELINE, width=1, dash="dot")),
             )
         )
-        fig_funil.update_layout(**base_layout(height=340, margin=dict(l=8, r=140, t=8, b=8)))
+        fig_funil.update_layout(**base_layout(height=340, margin=dict(l=8, r=100, t=8, b=8)))
         fig_funil.update_xaxes(range=[0, EMPRESAS_MAPEADAS * 1.3], visible=False)
         fig_funil.update_yaxes(**axis_style(tickfont=dict(color=INK_MUTED, size=13)))
-        st.plotly_chart(fig_funil, use_container_width=True)
+        st.plotly_chart(fig_funil, use_container_width=True, config=PLOTLY_CONFIG)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1, st.container(border=True):
@@ -198,7 +200,7 @@ with tab_segmentacao:
                 fig.update_layout(**base_layout(showlegend=False, height=320))
                 fig.update_xaxes(**axis_style())
                 fig.update_yaxes(**axis_style(title="Empresas"))
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
             else:
                 st.info("Sem dados na view v_leads_by_classificacao.")
 
@@ -211,21 +213,21 @@ with tab_segmentacao:
                 fig = go.Figure(
                     go.Bar(
                         x=df_seg["total"],
-                        y=df_seg["segmento"],
+                        y=[truncar(s) for s in df_seg["segmento"]],
                         orientation="h",
                         marker=dict(color=BLUE, cornerradius=4),
                         text=[fmt_int(v) for v in df_seg["total"]],
                         textposition="outside",
                         textfont=dict(color=INK_MUTED, size=11),
                         cliponaxis=False,
-                        customdata=[fmt_int(v) for v in df_seg["total"]],
-                        hovertemplate="%{y}<br>%{customdata} empresas<extra></extra>",
+                        customdata=list(zip(df_seg["segmento"], [fmt_int(v) for v in df_seg["total"]])),
+                        hovertemplate="%{customdata[0]}<br>%{customdata[1]} empresas<extra></extra>",
                     )
                 )
                 fig.update_layout(**base_layout(showlegend=False, height=320, margin=dict(l=8, r=48, t=8, b=8)))
                 fig.update_xaxes(**axis_style(title="Empresas", range=[0, df_seg["total"].max() * 1.18]))
                 fig.update_yaxes(**axis_style())
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
             else:
                 st.info("Sem dados na view v_leads_by_segmento.")
 
@@ -260,7 +262,7 @@ with tab_segmentacao:
             fig.update_layout(**base_layout(barmode="stack", height=380))
             fig.update_xaxes(**axis_style())
             fig.update_yaxes(**axis_style(title="Empresas"))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
         else:
             st.info("Sem dados na view v_leads_by_uf.")
 

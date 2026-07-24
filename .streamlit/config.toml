@@ -15,3 +15,10 @@ secondaryBackgroundColor = "#f2f1ea"
 textColor = "#0b0b0b"
 font = "Fira Sans:https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&display=swap"
 codeFont = "Fira Code:https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap"
+# Titulo padrao do Streamlit (h1) e enorme (~2.75rem+) e nao tem breakpoint
+# mobile - num celular de 390px ele sozinho toma quase a tela inteira antes
+# de qualquer dado aparecer. Reduzido pra todos os tamanhos de tela (h1-h3;
+# so usamos st.title/h1 e st.subheader/h3 no app), o que tambem bate melhor
+# com o estilo "Data-Dense Dashboard" (compacto) do que um titulo grande de
+# landing page.
+headingFontSizes = ["1.75rem", "1.375rem", "1.125rem"]
