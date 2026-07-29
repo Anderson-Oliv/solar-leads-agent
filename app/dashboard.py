@@ -150,7 +150,7 @@ def carregar_piloto_enriquecido() -> pd.DataFrame:
 
     resp_leads = (
         supabase.table("leads_qualificados")
-        .select("cnpj,razao_social,uf,segmento,score,classificacao,porte,ja_tem_solar_aneel")
+        .select("cnpj,razao_social,uf,municipio,segmento,score,classificacao,porte,ja_tem_solar_aneel")
         .in_("cnpj", df_piloto["cnpj"].tolist())
         .execute()
     )

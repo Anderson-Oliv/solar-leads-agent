@@ -83,6 +83,7 @@ class Lead(BaseModel):
     razao_social: str
     nome_fantasia: Optional[str] = None
     uf: Optional[str] = None
+    municipio: Optional[str] = None
     segmento: Optional[str] = None
     porte: Optional[str] = None
     score: float
@@ -107,7 +108,7 @@ def _buscar_leads(
 ) -> list[dict]:
     query = (
         supabase.table(TABELA_LEADS)
-        .select("cnpj,razao_social,nome_fantasia,uf,segmento,porte,score,classificacao,data_criacao,ja_tem_solar_aneel")
+        .select("cnpj,razao_social,nome_fantasia,uf,municipio,segmento,porte,score,classificacao,data_criacao,ja_tem_solar_aneel")
         .gte("score", score_min)
     )
     if date:
@@ -190,7 +191,7 @@ def feed_leads_csv(
 
     buffer = io.StringIO()
     campos = [
-        "cnpj", "razao_social", "nome_fantasia", "uf", "segmento", "porte",
+        "cnpj", "razao_social", "nome_fantasia", "uf", "municipio", "segmento", "porte",
         "score", "classificacao", "data_criacao", "telefone", "email", "site", "tem_contato",
         "ja_tem_solar_aneel",
     ]
