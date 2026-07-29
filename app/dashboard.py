@@ -110,6 +110,21 @@ def carregar_timeline() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=3600)
+def carregar_stats_solar_aneel() -> int:
+    """Quantos leads qualificados ja tem solar instalado, segundo o cruzamento
+    com o dataset da ANEEL (28/07/2026) - count via head request, sem trazer
+    as linhas."""
+    resp = (
+        supabase.table("leads_qualificados")
+        .select("cnpj", count="exact")
+        .eq("ja_tem_solar_aneel", True)
+        .limit(1)
+        .execute()
+    )
+    return resp.count or 0
+
+
+@st.cache_data(ttl=3600)
 def carregar_stats_contato() -> tuple[int, int]:
     """Retorna (total processado no piloto, quantos tem contato) - so cobre a
     amostra de leads quentes enriquecida ate agora, nao a base toda."""
@@ -135,7 +150,7 @@ def carregar_piloto_enriquecido() -> pd.DataFrame:
 
     resp_leads = (
         supabase.table("leads_qualificados")
-        .select("cnpj,razao_social,uf,segmento,score,classificacao,porte")
+        .select("cnpj,razao_social,uf,segmento,score,classificacao,porte,ja_tem_solar_aneel")
         .in_("cnpj", df_piloto["cnpj"].tolist())
         .execute()
     )
@@ -151,6 +166,14 @@ total_geral = int(df_class["total"].sum()) if not df_class.empty else 0
 qualificados_60 = int(df_class.loc[df_class["classificacao"].isin(["🟢 Lead Quente", "🟡 Lead Bom"]), "total"].sum()) if not df_class.empty else 0
 quentes_80 = int(df_class.loc[df_class["classificacao"] == "🟢 Lead Quente", "total"].sum()) if not df_class.empty else 0
 total_piloto, com_contato = carregar_stats_contato()
+ja_tem_solar_total = carregar_stats_solar_aneel()
+df_piloto = carregar_piloto_enriquecido()
+if not df_piloto.empty:
+    _tem_contato_mask = df_piloto["tem_contato"] == True  # noqa: E712 - comparacao explicita, coluna sem NaN aqui
+    contato_com_solar = int((_tem_contato_mask & df_piloto["ja_tem_solar_aneel"]).sum())
+    contato_sem_solar = int((_tem_contato_mask & ~df_piloto["ja_tem_solar_aneel"]).sum())
+else:
+    contato_com_solar = contato_sem_solar = 0
 
 # Aba de timeline ocultada por ora: toda a base ainda foi carregada numa
 # unica data (`data_criacao`), entao o grafico de evolucao nao teria o que
@@ -208,6 +231,29 @@ with tab_geral:
         st.metric(
             "Próximo reprocessamento Firecrawl", PROXIMO_REPROCESSAMENTO_FIRECRAWL,
             help="Decisão de 24/07/2026: manter o baseline atual do piloto até essa data, sem investir em crédito Firecrawl antes disso.",
+        )
+
+    st.subheader("Já convertidos (ANEEL)")
+    with st.container(border=True):
+        st.metric(
+            "Leads que já têm solar instalado",
+            f"{fmt_int(ja_tem_solar_total)} ({ja_tem_solar_total / total_geral * 100:.1f}% da base)" if total_geral else fmt_int(ja_tem_solar_total),
+            help="Cruzamento com o dataset público da ANEEL (28/07/2026) — CNPJs que já aparecem como titulares de geração distribuída solar. Excluídos por padrão do feed de prospecção (`excluir_com_solar=true`) e da planilha de acompanhamento, mas ainda contam como leads qualificados aqui.",
+        )
+
+    col_s1, col_s2 = st.columns(2)
+    total_contato_solar = contato_com_solar + contato_sem_solar
+    with col_s1, st.container(border=True):
+        pct_com = contato_com_solar / total_contato_solar * 100 if total_contato_solar else 0
+        st.metric(
+            "Com contato + já tem solar", f"{fmt_int(contato_com_solar)} ({pct_com:.1f}%)",
+            help="Entre os leads quentes que já têm telefone/email/site encontrado (piloto de enriquecimento), quantos já aparecem como titulares de solar na ANEEL — esforço de contato desperdiçado em quem já converteu.",
+        )
+    with col_s2, st.container(border=True):
+        pct_sem = contato_sem_solar / total_contato_solar * 100 if total_contato_solar else 0
+        st.metric(
+            "Com contato + ainda sem solar", f"{fmt_int(contato_sem_solar)} ({pct_sem:.1f}%)",
+            help="Alvo real pro comercial: leads quentes com contato encontrado que ainda não têm solar instalado.",
         )
 
 with tab_segmentacao:
@@ -319,12 +365,11 @@ with tab_segmentacao:
 with tab_explorar:
     st.subheader("Explorar leads — piloto de enriquecimento de contato")
 
-    f1, f2, f3 = st.columns([1, 1, 1])
+    f1, f2, f3, f4 = st.columns([1, 1, 1, 1])
     ufs_selecionadas = f1.multiselect("UF", options=UFS_ICP, default=[])
     segmento_busca = f2.text_input("Segmento contém", value="")
     score_min = f3.slider("Score mínimo", min_value=0, max_value=100, value=60, step=5)
-
-    df_piloto = carregar_piloto_enriquecido()
+    excluir_com_solar = f4.checkbox("Excluir quem já tem solar (ANEEL)", value=True)
 
     if df_piloto.empty:
         st.info("Nenhum CNPJ processado no piloto de enriquecimento ainda.")
@@ -334,6 +379,8 @@ with tab_explorar:
             filtro &= df_piloto["uf"].isin(ufs_selecionadas)
         if segmento_busca:
             filtro &= df_piloto["segmento"].str.contains(segmento_busca, case=False, na=False)
+        if excluir_com_solar:
+            filtro &= ~df_piloto["ja_tem_solar_aneel"]
         df_piloto_filtrado = df_piloto[filtro]
 
         st.caption(
